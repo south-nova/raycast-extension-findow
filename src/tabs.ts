@@ -29,16 +29,19 @@ const LIST = `
 function run(argv) {
   const out = [];
   for (const [app, bundleId] of JSON.parse(argv[0])) {
-    let a;
-    try { a = Application(bundleId); if (!a.running()) continue; } catch (e) { continue; }
-    const titleProp = bundleId === "${SAFARI}" ? "name" : "title";
-    for (const w of a.windows()) {
-      let titles, urls, ids, windowId;
-      try { windowId = w.id(); titles = w.tabs[titleProp](); urls = w.tabs.url(); } catch (e) { continue; }
-      try { ids = w.tabs.id(); } catch (e) { ids = []; }
-      for (let i = 0; i < titles.length; i++)
-        out.push({ kind: "tab", app, bundleId, windowId, tabId: ids[i] ?? null, tabIndex: i + 1, title: titles[i] || urls[i] || "", url: urls[i] || "" });
-    }
+    // 브라우저 하나가 실패해도(응답 없음, 권한 거부) 나머지 브라우저의 탭은 돌려준다.
+    try {
+      const a = Application(bundleId);
+      if (!a.running()) continue;
+      const safari = bundleId === "${SAFARI}";
+      for (const w of a.windows()) {
+        let titles, urls, ids, windowId;
+        try { windowId = w.id(); titles = w.tabs[safari ? "name" : "title"](); urls = w.tabs.url(); } catch (e) { continue; }
+        ids = safari ? [] : w.tabs.id();  // 사파리는 탭 id 가 없다
+        for (let i = 0; i < titles.length; i++)
+          out.push({ kind: "tab", app, bundleId, windowId, tabId: ids[i] ?? null, tabIndex: i + 1, title: titles[i] || urls[i] || "", url: urls[i] || "" });
+      }
+    } catch (e) {}
   }
   return JSON.stringify(out);
 }`;
