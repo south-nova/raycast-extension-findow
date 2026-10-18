@@ -71,14 +71,15 @@ func list() {
       minimized = (attr(el, kAXMinimizedAttribute) as? Bool) ?? false
     } else {  // 다른 Space 의 창: AX 로는 못 보므로 윈도 서버 제목을 쓴다. 화면 기록 권한이 없으면 비어 온다.
       title = r.cgName
-      if title.isEmpty { needScreenRecording = true }
+      if title.isEmpty { needScreenRecording = true; title = ra?.localizedName ?? "" }  // 제목 대신 앱 이름으로라도 찾히게
     }
     if title.isEmpty { continue }
     out.append(["pid": r.pid, "wid": r.wid, "app": ra?.localizedName ?? "", "bundleId": ra?.bundleIdentifier ?? "",
                 "title": title, "minimized": minimized])
   }
-  if needScreenRecording && !CGPreflightScreenCaptureAccess() { CGRequestScreenCaptureAccess() }  // 한 번만 뜨는 시스템 권한 창
-  FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: out))
+  let screenRecording = CGPreflightScreenCaptureAccess()
+  if needScreenRecording && !screenRecording { CGRequestScreenCaptureAccess() }  // 시스템 권한 창은 한 번만 뜬다
+  FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: ["windows": out, "screenRecording": screenRecording]))
 }
 
 func axFind(_ pid: pid_t, _ wid: UInt32) -> AXUIElement? {

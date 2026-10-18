@@ -16,12 +16,15 @@ async function helper(...args: string[]): Promise<string> {
   return stdout;
 }
 
-export async function listWindows(): Promise<WindowItem[]> {
-  const items = JSON.parse(await helper("list")) as Omit<WindowItem, "kind">[];
+export async function listWindows(): Promise<{ windows: WindowItem[]; screenRecording: boolean }> {
+  const { windows, screenRecording } = JSON.parse(await helper("list")) as { windows: Omit<WindowItem, "kind">[]; screenRecording: boolean };
   // 탭을 읽는 브라우저의 창은 탭 목록에 전부 들어가므로 창 목록에서는 뺀다. Raycast 자신도 뺀다.
-  return items
-    .filter((w) => !BROWSER_BUNDLES.includes(w.bundleId) && w.bundleId !== "com.raycast.macos")
-    .map((w) => ({ kind: "window", ...w }));
+  return {
+    windows: windows
+      .filter((w) => !BROWSER_BUNDLES.includes(w.bundleId) && w.bundleId !== "com.raycast.macos")
+      .map((w) => ({ kind: "window", ...w })),
+    screenRecording,
+  };
 }
 
 export async function raiseWindow(w: WindowItem) {

@@ -1,4 +1,4 @@
-import { Action, ActionPanel, closeMainWindow, getApplications, Icon, List, popToRoot } from "@raycast/api";
+import { Action, ActionPanel, closeMainWindow, open, getApplications, Icon, List, popToRoot } from "@raycast/api";
 import { getFavicon, showFailureToast, useCachedPromise } from "@raycast/utils";
 import { listTabs, activateTab, TabItem } from "./tabs";
 import { listWindows, raiseWindow, WindowItem } from "./windows";
@@ -8,11 +8,11 @@ import { useState } from "react";
 type Item = WindowItem | TabItem;
 
 async function load() {
-  const [windows, tabs, apps] = await Promise.all([listWindows(), listTabs(), getApplications()]);
+  const [{ windows, screenRecording }, tabs, apps] = await Promise.all([listWindows(), listTabs(), getApplications()]);
   // 캐시가 JSON 으로 저장되므로 Map 대신 평범한 객체
   const appPath: Record<string, string> = {};
   for (const a of apps) if (a.bundleId) appPath[a.bundleId] = a.path;
-  return { windows, tabs, appPath };
+  return { windows, tabs, appPath, screenRecording };
 }
 
 async function focus(item: Item) {
@@ -51,6 +51,18 @@ export default function Command() {
 
   return (
     <List isLoading={isLoading} searchBarPlaceholder="창 제목이나 탭 제목으로 검색 (한영 전환 안 해도 됨)" filtering={false} onSearchTextChange={setQuery}>
+      {data && !data.screenRecording && (
+        <List.Item
+          title="다른 데스크탑에 있는 창의 제목이 안 보입니다"
+          subtitle="시스템 설정 → 개인정보 보호 → 화면 기록에서 Raycast 를 허용하세요"
+          icon={Icon.Warning}
+          actions={
+            <ActionPanel>
+              <Action title="화면 기록 설정 열기" icon={Icon.Gear} onAction={() => open("x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture")} />
+            </ActionPanel>
+          }
+        />
+      )}
       <List.Section title="창" subtitle={String(windows.length)}>
         {windows.map((w) => (
           <List.Item
