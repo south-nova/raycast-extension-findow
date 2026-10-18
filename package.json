@@ -1,0 +1,31 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "findow",
+  "title": "Findow",
+  "description": "Search every open window and browser tab in one list and bring it to front",
+  "icon": "icon.png",
+  "author": "southnova",
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "switch",
+      "title": "Switch Window or Tab",
+      "description": "Fuzzy-search open windows and Chrome/Safari tabs, then raise the match",
+      "mode": "view"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.104.0",
+    "@raycast/utils": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "typescript": "^5.6.0"
+  },
+  "scripts": {
+    "build": "ray build -e dist",
+    "dev": "ray develop",
+    "lint": "ray lint"
+  }
+}
