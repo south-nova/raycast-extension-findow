@@ -37,6 +37,7 @@ npm install && npm run dev   # "built extension successfully" 가 뜨면 Ctrl+C
 ## 지원 범위
 
 - 창: 모든 데스크탑(Space)의 모든 앱 창. 최소화된 창도 찾아서 복원합니다.
+- 메모리: 창 행에는 그 앱(본체 + 자식 프로세스)의 메모리, 탭 행에는 브라우저 전체 메모리가 활성 상태 보기와 같은 기준으로 붙습니다. 탭별 메모리는 macOS 가 밖으로 알려 주지 않아 브라우저 작업 관리자(⇧Esc)에서만 볼 수 있습니다.
 - 탭: Brave, Chrome, Edge, Vivaldi, Chromium, Opera, Safari. 설치 안 된 브라우저는 건너뜁니다.
 - Firefox, Arc 는 탭 제어 AppleScript 가 없어 창 단위(현재 탭 제목)로만 잡힙니다.
 

@@ -3,7 +3,7 @@ import { getFavicon, showFailureToast, useCachedPromise } from "@raycast/utils";
 import { useMemo, useState } from "react";
 import { toHangul, toQwerty } from "./hangul";
 import { listTabs, activateTab, TabItem } from "./tabs";
-import { listWindows, raiseWindow, WindowItem } from "./windows";
+import { formatMem, listWindows, raiseWindow, WindowItem } from "./windows";
 
 type Item = WindowItem | TabItem;
 
@@ -92,7 +92,10 @@ export default function Command() {
             title={w.title}
             subtitle={w.app}
             icon={w.appPath ? { fileIcon: w.appPath } : Icon.Window}
-            accessories={w.minimized ? [{ tag: "최소화" }] : []}
+            accessories={[
+              ...(w.minimized ? [{ tag: "최소화" }] : []),
+              ...(w.mem ? [{ text: formatMem(w.mem), tooltip: `${w.app} 앱 전체 메모리 (활성 상태 보기 기준)` }] : []),
+            ]}
             actions={
               <ActionPanel>
                 <Action title="창 올리기" icon={Icon.Window} onAction={() => focus(w)} />
@@ -109,6 +112,7 @@ export default function Command() {
             title={t.title}
             subtitle={host}
             icon={t.url ? icon : browserIcon(t.bundleId)}
+            accessories={win.data?.mem[t.bundleId] ? [{ text: formatMem(win.data.mem[t.bundleId]), tooltip: `${t.app} 브라우저 전체 메모리. 탭별 수치는 브라우저 작업 관리자(⇧Esc)에서만 볼 수 있습니다` }] : []}
             actions={
               <ActionPanel>
                 <Action title="탭 열기" icon={Icon.Globe} onAction={() => focus(t)} />

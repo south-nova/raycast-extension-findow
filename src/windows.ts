@@ -13,7 +13,12 @@ export type WindowItem = {
   wid: number;
   title: string;
   minimized: boolean;
+  mem: number; // 앱 본체 + 자식 프로세스 phys_footprint(바이트). 창이 아니라 앱 단위.
 };
+
+export function formatMem(bytes: number): string {
+  return bytes >= 2 ** 30 ? `${(bytes / 2 ** 30).toFixed(1)} GB` : `${Math.round(bytes / 2 ** 20)} MB`;
+}
 
 // Accessibility 의 창 목록은 현재 Space 만 보여 주므로, 모든 Space 의 창을 윈도 서버에서 읽고
 // 창 하나만 앞으로 올리는 일은 Swift 헬퍼(helper/main.swift → assets/findow-helper)가 맡는다.
@@ -32,12 +37,13 @@ async function helper(...args: string[]): Promise<string> {
   }
 }
 
-export async function listWindows(): Promise<{ windows: WindowItem[]; screenRecording: boolean }> {
-  const { windows, screenRecording } = JSON.parse(await helper("list", "--skip", SKIP)) as {
+export async function listWindows(): Promise<{ windows: WindowItem[]; screenRecording: boolean; mem: Record<string, number> }> {
+  const { windows, screenRecording, mem } = JSON.parse(await helper("list", "--skip", SKIP)) as {
     windows: Omit<WindowItem, "kind">[];
     screenRecording: boolean;
+    mem: Record<string, number>; // 번들 ID → 바이트. 제외한 브라우저도 들어 있어 탭 행에 쓴다.
   };
-  return { windows: windows.map((w) => ({ kind: "window", ...w })), screenRecording };
+  return { windows: windows.map((w) => ({ kind: "window", ...w })), screenRecording, mem };
 }
 
 export async function raiseWindow(w: WindowItem) {

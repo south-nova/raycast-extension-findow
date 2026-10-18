@@ -27,6 +27,22 @@ func axWindows(_ pid: pid_t) -> [AXUIElement] {
   (attr(AXUIElementCreateApplication(pid), kAXWindowsAttribute) as? [AXUIElement]) ?? []
 }
 
+// MARK: memory
+
+// 활성 상태 보기의 "메모리" 열과 같은 phys_footprint. 앱 본체 + 자식 프로세스(Chromium·Electron 헬퍼) 합산.
+func footprint(_ pid: pid_t) -> UInt64 {
+  var info = rusage_info_current()
+  let ok = withUnsafeMutablePointer(to: &info) {
+    $0.withMemoryRebound(to: rusage_info_t?.self, capacity: 1) { proc_pid_rusage(pid, RUSAGE_INFO_CURRENT, $0) }
+  }
+  return ok == 0 ? info.ri_phys_footprint : 0
+}
+func treeFootprint(_ pid: pid_t) -> UInt64 {
+  var buf = [pid_t](repeating: 0, count: 512)
+  let n = proc_listchildpids(pid, &buf, Int32(buf.count * MemoryLayout<pid_t>.size))
+  return footprint(pid) + (n > 0 ? buf[0..<Int(n)].reduce(0) { $0 + treeFootprint($1) } : 0)
+}
+
 // MARK: list
 
 func list() {
@@ -48,8 +64,11 @@ func list() {
   }
   // 독에 뜨는 일반 앱만, 그리고 호출 쪽이 어차피 버릴 앱(탭으로 읽는 브라우저, Raycast)은 AX 조회 자체를 안 한다.
   var apps: [pid_t: NSRunningApplication] = [:]
+  var memByBundle: [String: UInt64] = [:]  // 제외한 브라우저도 탭 행에 전체 메모리를 보여 주려고 센다
   for pid in Set(rows.map { $0.pid }) {
-    if let a = NSRunningApplication(processIdentifier: pid), a.activationPolicy == .regular, !skip.contains(a.bundleIdentifier ?? "") { apps[pid] = a }
+    guard let a = NSRunningApplication(processIdentifier: pid), a.activationPolicy == .regular else { continue }
+    memByBundle[a.bundleIdentifier ?? ""] = treeFootprint(pid)
+    if !skip.contains(a.bundleIdentifier ?? "") { apps[pid] = a }
   }
   // 앱마다 AX 로 현재 Space 창의 제목·종류·최소화를 읽는다. 앱 하나에 20~30ms 씩 걸리므로 앱 단위로 동시에 돈다.
   struct AxInfo { let standard: Bool; let title: String; let minimized: Bool }
@@ -82,11 +101,12 @@ func list() {
     }
     if title.isEmpty { continue }
     out.append(["pid": r.pid, "wid": r.wid, "app": app.localizedName ?? "", "bundleId": app.bundleIdentifier ?? "",
-                "appPath": app.bundleURL?.path ?? "", "title": title, "minimized": minimized])
+                "appPath": app.bundleURL?.path ?? "", "title": title, "minimized": minimized,
+                "mem": memByBundle[app.bundleIdentifier ?? ""] ?? 0])
   }
   let screenRecording = CGPreflightScreenCaptureAccess()
   if needScreenRecording && !screenRecording { CGRequestScreenCaptureAccess() }  // 시스템 권한 창은 한 번만 뜬다
-  FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: ["windows": out, "screenRecording": screenRecording]))
+  FileHandle.standardOutput.write(try! JSONSerialization.data(withJSONObject: ["windows": out, "screenRecording": screenRecording, "mem": memByBundle]))
 }
 
 // MARK: raise
